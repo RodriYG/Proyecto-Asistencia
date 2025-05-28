@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS JUSTIFICACIONES (
     fecha date,
     motivo text,
     estado estado,
-    fecha_solicitud datetime
+    fecha_solicitud timestamp
 );
 
 CREATE TABLE IF NOT EXISTS TURNOS (

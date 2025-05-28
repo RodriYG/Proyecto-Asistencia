@@ -11,7 +11,7 @@ services:
       - POSTGRES_DB=asistencia  
     volumes:
       - ./postgres/schema.sql:/docker-entrypoint-initdb.d/create_schema.sql
-      - ./postgres/usuario.sql:/docker-entrypoint-initdb.d/data.sql
+      - ./postgres/data.sql:/docker-entrypoint-initdb.d/data.sql
 
   soabus:
     image: jrgiadach/soabus:v1

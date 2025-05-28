@@ -1,1 +1,0 @@
-insert into USUARIO (rut, nombre, apellido, email, password, rol) values ('111111111', 'Lil', 'Tula', 'tula@mail.com', 'trulita', 'noexiste');

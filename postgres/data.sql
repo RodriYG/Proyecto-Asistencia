@@ -1,0 +1,1 @@
+INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES ('111111111', 'Pedro', 'Pancho', 'pedro@mail.com', 'panchito', 'empleado');

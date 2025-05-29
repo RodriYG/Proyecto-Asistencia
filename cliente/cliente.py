@@ -41,7 +41,7 @@ def main():
         if input('¿Enviar login? (y/n): ') != 'y':
             break
 
-        datos = input("Correo y contraseña: ")  # ejemplo: admin@mail.com 1234
+        datos = input("Correo y contraseña: ") 
         respuesta = enviar_transaccion("LOGIN", datos)
         print(f"Respuesta cruda: {respuesta}")
 
@@ -49,7 +49,7 @@ def main():
             partes = respuesta.split("LOGINOK")[1].strip().split()
             token = partes[0]
             rol = partes[1]
-            correo = partes[3] if len(partes) > 3 else datos.split()[0]  # fallback si no viene en respuesta
+            correo = partes[3] if len(partes) > 3 else datos.split()[0]
             print(f"Login correcto. Token: {token}, Rol: {rol}, Correo: {correo}")
             mostrar_menu_rol(rol, correo)
         elif "LOGINNK" in respuesta:

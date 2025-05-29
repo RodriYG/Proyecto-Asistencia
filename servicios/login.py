@@ -33,7 +33,7 @@ try:
             sinit = 0
             print('Received sinit answer')
         else:
-            entrada = data.decode()[5:]  # quitar 'LOGIN'
+            entrada = data.decode()[5:]
             print(f'Datos recibidos: {entrada}')
 
             try:
@@ -46,7 +46,7 @@ try:
                 resultado_query = cursor.fetchone()
 
                 if resultado_query:
-                    rol = resultado_query[0].upper()  # lo convertimos a mayúsculas por consistencia
+                    rol = resultado_query[0].upper()
                     token = "token123"
                     resultado = f"{token} {rol} Bienvenido {email}"
                     estado = "OK"

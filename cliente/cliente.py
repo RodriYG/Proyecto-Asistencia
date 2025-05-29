@@ -11,7 +11,7 @@ def enviar_transaccion(servicio, datos):
         respuesta = sock.recv(largo).decode()
     return respuesta
 
-def mostrar_menu_rol(rol):
+def mostrar_menu_rol(rol, correo):
     while True:
         print(f"\n--- Menú de {rol} ---")
         if rol == "EMPLEADO":
@@ -30,6 +30,9 @@ def mostrar_menu_rol(rol):
         if op == "0":
             print("Sesión cerrada.")
             break
+        elif rol == "EMPLEADO" and op == "1":
+            respuesta = enviar_transaccion("MASIS", correo)
+            print("Respuesta del servidor:", respuesta)
         else:
             print("Funcionalidad aún no implementada.")
 
@@ -46,8 +49,9 @@ def main():
             partes = respuesta.split("LOGINOK")[1].strip().split()
             token = partes[0]
             rol = partes[1]
-            print(f"Login correcto. Token: {token}, Rol: {rol}")
-            mostrar_menu_rol(rol)
+            correo = partes[3] if len(partes) > 3 else datos.split()[0]  # fallback si no viene en respuesta
+            print(f"Login correcto. Token: {token}, Rol: {rol}, Correo: {correo}")
+            mostrar_menu_rol(rol, correo)
         elif "LOGINNK" in respuesta:
             print("Login inválido:", respuesta.split("LOGINNK")[1].strip())
         else:

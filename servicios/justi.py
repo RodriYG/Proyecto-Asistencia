@@ -57,7 +57,7 @@ try:
                 respuesta = "JUSTIOKJustificación registrada como pendiente"
 
         except Exception as e:
-            print("❌ Error:", e)
+            print("Error:", e)
             respuesta = f"JUSTINKError: {str(e)}"
 
         mensaje_respuesta = f"{len(respuesta):05}{respuesta}"

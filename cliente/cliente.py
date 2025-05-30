@@ -20,35 +20,45 @@ def mostrar_menu_rol(rol, correo):
             print("3. Ver historial")
         elif rol == "EMPLEADOR":
             print("1. Buscar empleado")
-            print("2. Gestionar turnos y permisos")
+            print("2. Gestionar justificaciones")
             print("3. Ver historial")
             print("4. Modificar asistencia")
             print("5. Registrar/eliminar trabajador")
             print("6. Reporte mensual")
         print("0. Cerrar sesión")
         op = input("Opción: ")
+
         if op == "0":
             print("Sesión cerrada.")
             break
+
         elif rol == "EMPLEADO" and op == "1":
             respuesta = enviar_transaccion("MASIS", correo)
             print("Respuesta del servidor:", respuesta)
+
         elif rol == "EMPLEADO" and op == "2":
             fecha = input("Fecha a justificar (YYYY-MM-DD): ")
             motivo = input("Motivo de la inasistencia: ")
             datos = f"{correo}|{fecha}|{motivo}"
             respuesta = enviar_transaccion("JUSTI", datos)
             print("Respuesta del servidor:", respuesta)
+
+        elif rol == "EMPLEADOR" and op == "2":
+            id_just = input("ID de justificación a gestionar: ")
+            accion = input("¿Aprobar o rechazar? (aprobado/rechazado): ")
+            datos = f"{id_just}|{accion}"
+            respuesta = enviar_transaccion("GESTJ", datos)
+            print("Respuesta del servidor:", respuesta)
+
         else:
             print("Funcionalidad aún no implementada.")
-
 
 def main():
     while True:
         if input('¿Enviar login? (y/n): ') != 'y':
             break
 
-        datos = input("Correo y contraseña: ") 
+        datos = input("Correo y contraseña: ")  # ejemplo: admin@mail.com 1234
         respuesta = enviar_transaccion("LOGIN", datos)
         print(f"Respuesta cruda: {respuesta}")
 
@@ -56,9 +66,9 @@ def main():
             partes = respuesta.split("LOGINOK")[1].strip().split()
             token = partes[0]
             rol = partes[1]
-            correo = partes[3] if len(partes) > 3 else datos.split()[0]
-            print(f"Login correcto. Token: {token}, Rol: {rol}, Correo: {correo}")
-            mostrar_menu_rol(rol, correo)
+            correo = datos.split()[0]
+            print(f"✅ Login correcto. Token: {token}, Rol: {rol}")
+            mostrar_menu_rol(rol.upper(), correo)
         elif "LOGINNK" in respuesta:
             print("Login inválido:", respuesta.split("LOGINNK")[1].strip())
         else:

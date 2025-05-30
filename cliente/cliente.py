@@ -56,7 +56,7 @@ def mostrar_menu_rol(rol, correo):
 
 def main():
     while True:
-        if input('¿Enviar login? (y/n): ') != 'y':
+        if input('¿Quieres iniciar sesión? (y/n): ') != 'y':
             break
 
         datos = input("Correo y contraseña: ")  # ejemplo: admin@mail.com 1234

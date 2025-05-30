@@ -32,9 +32,16 @@ def mostrar_menu_rol(rol, correo):
             break
         elif rol == "EMPLEADO" and op == "1":
             respuesta = enviar_transaccion("MASIS", correo)
-            print("Respuesta del servidor:", respuesta)
+            print("🟢 Respuesta del servidor:", respuesta)
+        elif rol == "EMPLEADO" and op == "2":
+            fecha = input("Fecha a justificar (YYYY-MM-DD): ")
+            motivo = input("Motivo de la inasistencia: ")
+            datos = f"{correo}|{fecha}|{motivo}"
+            respuesta = enviar_transaccion("JUSTI", datos)
+            print("🟢 Respuesta del servidor:", respuesta)
         else:
-            print("Funcionalidad aún no implementada.")
+            print("⚠️ Funcionalidad aún no implementada.")
+
 
 def main():
     while True:

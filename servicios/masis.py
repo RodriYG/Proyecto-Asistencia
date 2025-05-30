@@ -12,13 +12,14 @@ conn = psycopg2.connect(
 )
 cursor = conn.cursor()
 
+# Conexión al bus SOA
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 bus_address = ('localhost', 5000)
-print('Conectando al bus en {}:{}'.format(*bus_address))
+print("Conectando al bus en {}:{}".format(*bus_address))
 sock.connect(bus_address)
 
+# Registro del servicio en el bus
 mensaje_sinit = b'00010sinitMASIS'
-print('Enviando sinit:', mensaje_sinit)
 sock.sendall(mensaje_sinit)
 sinit = True
 
@@ -27,62 +28,49 @@ try:
         print("Esperando transacción...")
         largo = int(sock.recv(5))
         datos = sock.recv(largo)
-        print("Recibido:", datos)
+        print("Datos recibidos:", datos)
 
         if sinit:
             sinit = False
-            print("sinit recibido")
+            print("Respuesta sinit recibida.")
             continue
 
-        correo = datos.decode()[5:].strip()
-        print("Correo recibido:", correo)
-
-        now = datetime.now()
-        fecha = now.date()
-        hora = now.strftime('%H:%M:%S')
-
         try:
-            cursor.execute("SELECT id_usuario FROM USUARIO WHERE email = %s", (correo,))
-            user = cursor.fetchone()
+            rut = int(datos.decode()[5:].strip())
+            hoy = datetime.now().date()
+            hora = datetime.now().time()
 
-            if not user:
-                respuesta = "MASISNKUsuario no encontrado"
+            # Buscar el id_usuario correspondiente al rut
+            cursor.execute("SELECT id_usuario FROM USUARIO WHERE rut = %s", (rut,))
+            usuario = cursor.fetchone()
+
+            if not usuario:
+                respuesta = "MASISNKRut no registrado"
             else:
-                id_usuario = user[0]
+                id_usuario = usuario[0]
 
+                # Verificar si ya hay asistencia hoy
                 cursor.execute("""
-                    SELECT id_asistencia, hora_entrada, hora_salida
-                    FROM ASISTENCIAS
+                    SELECT * FROM ASISTENCIAS
                     WHERE id_usuario = %s AND fecha = %s
-                    ORDER BY id_asistencia DESC
-                    LIMIT 1
-                """, (id_usuario, fecha))
-                asistencia = cursor.fetchone()
+                """, (id_usuario, hoy))
+                existente = cursor.fetchone()
 
-                if not asistencia:
+                if existente:
+                    respuesta = "MASISNKYa se registró asistencia hoy"
+                else:
                     cursor.execute("""
                         INSERT INTO ASISTENCIAS (id_usuario, fecha, hora_entrada)
                         VALUES (%s, %s, %s)
-                    """, (id_usuario, fecha, hora))
+                    """, (id_usuario, hoy, hora))
                     conn.commit()
-                    respuesta = "MASISOKEntrada registrada correctamente"
-                elif asistencia[2] is None:
-                    cursor.execute("""
-                        UPDATE ASISTENCIAS
-                        SET hora_salida = %s
-                        WHERE id_asistencia = %s
-                    """, (hora, asistencia[0]))
-                    conn.commit()
-                    respuesta = "MASISOKSalida registrada correctamente"
-                else:
-                    respuesta = "MASISOKYa registraste entrada y salida hoy"
+                    respuesta = "MASISOKAsistencia registrada correctamente"
 
         except Exception as e:
             print("Error:", e)
             respuesta = f"MASISNKError: {str(e)}"
 
         mensaje_respuesta = f"{len(respuesta):05}{respuesta}"
-        print("Enviando respuesta:", mensaje_respuesta)
         sock.sendall(mensaje_respuesta.encode())
 
 finally:

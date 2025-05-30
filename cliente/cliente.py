@@ -33,7 +33,8 @@ def mostrar_menu_rol(rol, correo):
             break
 
         elif rol == "EMPLEADO" and op == "1":
-            respuesta = enviar_transaccion("MASIS", correo)
+            rut = input("Confirma tu RUT para registrar asistencia: ")
+            respuesta = enviar_transaccion("MASIS", rut)
             print("Respuesta del servidor:", respuesta)
 
         elif rol == "EMPLEADO" and op == "2":

@@ -3,77 +3,97 @@ import socket
 def enviar_transaccion(servicio, datos):
     cuerpo = f"{servicio}{datos}"
     mensaje = f"{len(cuerpo):05}{cuerpo}"
-    print(f"Enviando: {mensaje}")
+    print(f"📤 Enviando (con largo): {mensaje}")  # Muestra mensaje completo
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect(('localhost', 5000))
         sock.sendall(mensaje.encode())
         largo = int(sock.recv(5))
         respuesta = sock.recv(largo).decode()
+    print(f"Recibido (con largo): {largo:05}{respuesta}")
     return respuesta
 
-def mostrar_menu_rol(rol, correo):
+
+def mostrar_menu_rol(rol, rut):
     while True:
-        print(f"\n--- Menú de {rol} ---")
-        if rol == "EMPLEADO":
+        print(f"\n--- Menú de {rol.upper()} ---")
+        if rol.upper() == "EMPLEADO":
             print("1. Marcar asistencia")
             print("2. Justificar inasistencia")
             print("3. Ver historial")
-        elif rol == "EMPLEADOR":
+        elif rol.upper() == "EMPLEADOR":
             print("1. Buscar empleado")
-            print("2. Gestionar justificaciones")
+            print("2. Gestionar turnos y permisos")
             print("3. Ver historial")
             print("4. Modificar asistencia")
             print("5. Registrar/eliminar trabajador")
             print("6. Reporte mensual")
         print("0. Cerrar sesión")
-        op = input("Opción: ")
 
+        op = input("Opción: ")
         if op == "0":
             print("Sesión cerrada.")
             break
 
-        elif rol == "EMPLEADO" and op == "1":
-            rut = input("Confirma tu RUT para registrar asistencia: ")
-            respuesta = enviar_transaccion("MASIS", rut)
-            print("Respuesta del servidor:", respuesta)
+        elif rol.upper() == "EMPLEADO" and op == "1":
+            tipo = input("¿Qué deseas marcar? (entrada/salida): ").strip().lower()
+            if tipo in ["entrada", "salida"]:
+                datos = f"{rut} {tipo}"
+                respuesta = enviar_transaccion("MASIS", datos)
+                print("Respuesta:", respuesta)
+            else:
+                print("Tipo inválido.")
 
-        elif rol == "EMPLEADO" and op == "2":
+        elif rol.upper() == "EMPLEADO" and op == "2":
             fecha = input("Fecha a justificar (YYYY-MM-DD): ")
             motivo = input("Motivo de la inasistencia: ")
-            datos = f"{correo}|{fecha}|{motivo}"
-            respuesta = enviar_transaccion("JUSTI", datos)
-            print("Respuesta del servidor:", respuesta)
+            datos = f"{rut}|{fecha}|{motivo}"
+            respuesta = enviar_transaccion("JASIS", datos)
+            print("Respuesta:", respuesta)
 
-        elif rol == "EMPLEADOR" and op == "2":
-            id_just = input("ID de justificación a gestionar: ")
-            accion = input("¿Aprobar o rechazar? (aprobado/rechazado): ")
-            datos = f"{id_just}|{accion}"
-            respuesta = enviar_transaccion("GESTJ", datos)
-            print("Respuesta del servidor:", respuesta)
+        elif rol.upper() == "EMPLEADO" and op == "3":
+            fecha_inicio = input("Fecha de inicio (YYYY-MM-DD): ").strip()
+            fecha_fin = input("Fecha de fin (YYYY-MM-DD): ").strip()
+            datos = f"{rut}|{fecha_inicio}|{fecha_fin}"
+            respuesta = enviar_transaccion("HISTO", datos)
+            print("Historial:\n", respuesta)
+        
+        elif rol.upper() == "EMPLEADOR" and op == "1":
+            rut_buscar = input("Ingrese el RUT del empleado a buscar: ")
+            respuesta = enviar_transaccion("BUSCA", rut_buscar)
+            print("Resultado:\n", respuesta)
+
+        elif rol.upper() == "EMPLEADOR" and op == "3":
+            rut_empleado = input("RUT del empleado: ").strip()
+            fecha_inicio = input("Fecha de inicio (YYYY-MM-DD): ").strip()
+            fecha_fin = input("Fecha de fin (YYYY-MM-DD): ").strip()
+            datos = f"{rut_empleado}|{fecha_inicio}|{fecha_fin}"
+            respuesta = enviar_transaccion("HISTO", datos)
+            print("Historial del empleado:\n", respuesta)
 
         else:
             print("Funcionalidad aún no implementada.")
 
 def main():
     while True:
-        if input('¿Quieres iniciar sesión? (y/n): ') != 'y':
+        if input('¿Enviar login? (y/n): ') != 'y':
             break
 
-        datos = input("Correo y contraseña: ")  # ejemplo: admin@mail.com 1234
+        datos = input("Correo y contraseña: ")  # Ej: pedro@mail.com panchito
         respuesta = enviar_transaccion("LOGIN", datos)
-        print(f"Respuesta cruda: {respuesta}")
 
-        if "LOGINOK" in respuesta:
-            partes = respuesta.split("LOGINOK")[1].strip().split()
-            token = partes[0]
-            rol = partes[1]
-            correo = datos.split()[0]
-            print(f"✅ Login correcto. Token: {token}, Rol: {rol}")
-            mostrar_menu_rol(rol.upper(), correo)
-        elif "LOGINNK" in respuesta:
-            print("Login inválido:", respuesta.split("LOGINNK")[1].strip())
+        if respuesta.startswith("LOGIN"):
+            try:
+                partes = respuesta[5:].strip().split(maxsplit=3)
+                token = partes[0]
+                rol = partes[1]
+                mensaje = partes[2]
+                rut = partes[3]
+                print(f"Login exitoso: Rol {rol}, Bienvenida: {mensaje}")
+                mostrar_menu_rol(rol, rut)
+            except Exception as e:
+                print("Error al interpretar la respuesta del servidor:", str(e))
         else:
-            print("Respuesta desconocida")
+            print("Error de login")
 
 if __name__ == "__main__":
     main()

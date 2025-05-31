@@ -12,13 +12,11 @@ conn = psycopg2.connect(
 )
 cursor = conn.cursor()
 
-# Conexión al bus
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 bus_address = ('localhost', 5000)
 print('Conectando al bus en {}:{}'.format(*bus_address))
 sock.connect(bus_address)
 
-# sinit
 mensaje_sinit = b'00010sinitJUSTI'
 print('Enviando sinit:', mensaje_sinit)
 sock.sendall(mensaje_sinit)
@@ -38,11 +36,12 @@ try:
 
         try:
             contenido = datos.decode()[5:].strip()
-            correo, fecha_str, motivo = contenido.split('|')
+            rut, fecha_str, motivo = contenido.split('|')
+            rut = int(rut.strip())
             fecha = datetime.strptime(fecha_str.strip(), '%Y-%m-%d').date()
             fecha_solicitud = datetime.now()
 
-            cursor.execute("SELECT id_usuario FROM USUARIO WHERE email = %s", (correo,))
+            cursor.execute("SELECT id_usuario FROM USUARIO WHERE rut = %s", (rut,))
             user = cursor.fetchone()
 
             if not user:

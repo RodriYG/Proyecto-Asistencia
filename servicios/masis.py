@@ -1,6 +1,6 @@
 import socket
 import psycopg2
-from datetime import datetime
+from datetime import datetime, date
 
 # Conexión a PostgreSQL
 conn = psycopg2.connect(
@@ -12,66 +12,90 @@ conn = psycopg2.connect(
 )
 cursor = conn.cursor()
 
-# Conexión al bus SOA
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 bus_address = ('localhost', 5000)
-print("Conectando al bus en {}:{}".format(*bus_address))
+print("Conectando a bus:", bus_address)
 sock.connect(bus_address)
 
-# Registro del servicio en el bus
-mensaje_sinit = b'00010sinitMASIS'
-sock.sendall(mensaje_sinit)
-sinit = True
+sinit = b'00010sinitMASIS'
+print("Enviando sinit:", sinit)
+sock.sendall(sinit)
+esperando_sinit = True
 
 try:
     while True:
         print("Esperando transacción...")
         largo = int(sock.recv(5))
-        datos = sock.recv(largo)
-        print("Datos recibidos:", datos)
+        data = sock.recv(largo)
+        print("Recibido:", data)
 
-        if sinit:
-            sinit = False
-            print("Respuesta sinit recibida.")
+        if esperando_sinit:
+            esperando_sinit = False
+            print("sinit recibido")
             continue
 
         try:
-            rut = int(datos.decode()[5:].strip())
-            hoy = datetime.now().date()
-            hora = datetime.now().time()
+            contenido = data.decode()[5:]
+            partes = contenido.strip().split()
+            if len(partes) != 2:
+                raise ValueError("Formato incorrecto")
 
-            # Buscar el id_usuario correspondiente al rut
+            rut, tipo = partes
+            hoy = date.today()
+
             cursor.execute("SELECT id_usuario FROM USUARIO WHERE rut = %s", (rut,))
-            usuario = cursor.fetchone()
+            user = cursor.fetchone()
 
-            if not usuario:
-                respuesta = "MASISNKRut no registrado"
+            if not user:
+                mensaje = "MASISUsuario no encontrado NK -"
             else:
-                id_usuario = usuario[0]
+                id_usuario = user[0]
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                # Verificar si ya hay asistencia hoy
-                cursor.execute("""
-                    SELECT * FROM ASISTENCIAS
-                    WHERE id_usuario = %s AND fecha = %s
-                """, (id_usuario, hoy))
-                existente = cursor.fetchone()
-
-                if existente:
-                    respuesta = "MASISNKYa se registró asistencia hoy"
-                else:
+                if tipo == "entrada":
                     cursor.execute("""
-                        INSERT INTO ASISTENCIAS (id_usuario, fecha, hora_entrada)
-                        VALUES (%s, %s, %s)
-                    """, (id_usuario, hoy, hora))
-                    conn.commit()
-                    respuesta = "MASISOKAsistencia registrada correctamente"
+                        SELECT * FROM ASISTENCIAS
+                        WHERE id_usuario = %s AND fecha = %s
+                    """, (id_usuario, hoy))
+                    existe = cursor.fetchone()
+
+                    if existe:
+                        mensaje = f"MASISEntrada ya registrada NK {timestamp}"
+                    else:
+                        cursor.execute("""
+                            INSERT INTO ASISTENCIAS (id_usuario, fecha, hora_entrada)
+                            VALUES (%s, %s, %s)
+                        """, (id_usuario, hoy, datetime.now().time()))
+                        conn.commit()
+                        mensaje = f"MASISEntrada registrada OK {timestamp}"
+
+                elif tipo == "salida":
+                    cursor.execute("""
+                        SELECT * FROM ASISTENCIAS
+                        WHERE id_usuario = %s AND fecha = %s AND hora_salida IS NULL
+                    """, (id_usuario, hoy))
+                    fila = cursor.fetchone()
+
+                    if fila:
+                        cursor.execute("""
+                            UPDATE ASISTENCIAS
+                            SET hora_salida = %s
+                            WHERE id_usuario = %s AND fecha = %s
+                        """, (datetime.now().time(), id_usuario, hoy))
+                        conn.commit()
+                        mensaje = f"MASISSalida registrada OK {timestamp}"
+                    else:
+                        mensaje = f"MASISNo se encontró entrada previa NK {timestamp}"
+                else:
+                    mensaje = f"MASISTipo inválido NK {timestamp}"
 
         except Exception as e:
-            print("Error:", e)
-            respuesta = f"MASISNKError: {str(e)}"
+            conn.rollback() 
+            mensaje = f"MASISError: {str(e)} NK -"
 
-        mensaje_respuesta = f"{len(respuesta):05}{respuesta}"
-        sock.sendall(mensaje_respuesta.encode())
+        largo = f"{len(mensaje):05}"
+        print("Enviando respuesta:", mensaje)
+        sock.sendall(f"{largo}{mensaje}".encode())
 
 finally:
     cursor.close()

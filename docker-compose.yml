@@ -3,6 +3,7 @@ version: '3.8'
 services:
   postgresql:
     image: 'postgres'
+    container_name: postgres
     ports:
       - '5432:5432'
     environment:
@@ -12,8 +13,21 @@ services:
     volumes:
       - ./postgres/schema.sql:/docker-entrypoint-initdb.d/create_schema.sql
       - ./postgres/data.sql:/docker-entrypoint-initdb.d/data.sql
-
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - asistencia
+      
   soabus:
     image: jrgiadach/soabus:v1
+    container_name: soabus
     ports:
-      - '5000:5000' 
+      - '5000:5000'
+    networks:
+      - asistencia
+
+volumes:
+  postgres_data:
+
+networks:
+  asistencia:
+    name: asistencia

@@ -56,7 +56,7 @@ def mostrar_menu_rol(rol, rut):
             datos = f"{rut}|{fecha_inicio}|{fecha_fin}"
             respuesta = enviar_transaccion("HISTO", datos)
             print("Historial:\n", respuesta)
-        
+
         elif rol.upper() == "EMPLEADOR" and op == "1":
             rut_buscar = input("Ingrese el RUT del empleado a buscar: ")
             respuesta = enviar_transaccion("BUSCA", rut_buscar)
@@ -69,6 +69,26 @@ def mostrar_menu_rol(rol, rut):
             datos = f"{rut_empleado}|{fecha_inicio}|{fecha_fin}"
             respuesta = enviar_transaccion("HISTO", datos)
             print("Historial del empleado:\n", respuesta)
+
+        elif rol.upper() == "EMPLEADOR" and op == "5":
+            subop = input("¿Desea registrar (r) o eliminar (e) un trabajador?: ").strip().lower()
+            if subop == "r":
+                print("Ingrese los datos del nuevo trabajador:")
+                rut_nuevo = input("RUT: ").strip()
+                nombre = input("Nombre: ").strip()
+                apellido = input("Apellido: ").strip()
+                email = input("Correo: ").strip()
+                password = input("Contraseña: ").strip()
+                rol_nuevo = input("Rol (empleado/empleador): ").strip().lower()
+                datos = f"{rut_nuevo}|{nombre}|{apellido}|{email}|{password}|{rol_nuevo}"
+                respuesta = enviar_transaccion("REGEL", datos)
+                print("Resultado:", respuesta)
+            elif subop == "e":
+                rut_eliminar = input("RUT del trabajador a eliminar: ").strip()
+                respuesta = enviar_transaccion("REGEL", rut_eliminar)
+                print("Resultado:", respuesta)
+            else:
+                print("Opción inválida.")
 
         else:
             print("Funcionalidad aún no implementada.")

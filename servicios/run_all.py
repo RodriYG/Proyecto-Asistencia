@@ -6,7 +6,9 @@ scripts = [
     "histo.py",
     "justi.py",
     "login.py",
-    "masis.py"
+    "masis.py",
+    "modas.py",
+    "regel.py"
 ]
 
 processes = []

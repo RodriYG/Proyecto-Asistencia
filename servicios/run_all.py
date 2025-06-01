@@ -8,7 +8,8 @@ scripts = [
     "login.py",
     "masis.py",
     "modas.py",
-    "regel.py"
+    "regel.py",
+    "rport.py"
 ]
 
 processes = []

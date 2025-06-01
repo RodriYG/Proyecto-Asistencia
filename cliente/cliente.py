@@ -89,6 +89,14 @@ def mostrar_menu_rol(rol, rut):
                 print("Resultado:", respuesta)
             else:
                 print("Opción inválida.")
+        
+        elif rol.upper() == "EMPLEADOR" and op == "6":
+            mes = input("Ingrese el mes (1-12): ").strip()
+            anio = input("Ingrese el año (YYYY): ").strip()
+            datos = f"{mes}|{anio}"
+            respuesta = enviar_transaccion("RPORT", datos)
+            print("Reporte mensual:\n", respuesta)
+
 
         else:
             print("Funcionalidad aún no implementada.")

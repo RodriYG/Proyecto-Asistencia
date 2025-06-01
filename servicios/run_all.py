@@ -9,7 +9,9 @@ scripts = [
     "masis.py",
     "modas.py",
     "regel.py",
-    "rport.py"
+    "rport.py",
+    "tuper.py",
+    "vturn.py"
 ]
 
 processes = []

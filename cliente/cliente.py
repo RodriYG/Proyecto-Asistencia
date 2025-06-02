@@ -1,4 +1,5 @@
 import socket
+import json
 
 def enviar_transaccion(servicio, datos):
     cuerpo = f"{servicio}{datos}"
@@ -49,7 +50,7 @@ def mostrar_menu_rol(rol, rut):
                 fecha = input("Fecha a justificar (YYYY-MM-DD): ").strip()
                 motivo = input("Motivo de la inasistencia: ").strip()
                 datos = f"{rut}|{fecha}|{motivo}"
-                respuesta = enviar_transaccion("JASIS", datos)
+                respuesta = enviar_transaccion("JUSTI", datos)
                 print("Respuesta:", respuesta)
 
             elif op == "3":
@@ -131,7 +132,26 @@ def mostrar_menu_rol(rol, rut):
                 anio = input("Año (YYYY): ").strip()
                 datos = f"{mes}|{anio}"
                 respuesta = enviar_transaccion("RPORT", datos)
-                print("Reporte mensual:\n", respuesta)
+            
+                try:
+                    status, json_data = respuesta.split("|", 1)
+                    if status != "RPORTOK":
+                        print("Error en la respuesta:", respuesta)
+                    else:
+                        reporte = json.loads(json_data)
+            
+                        # Imprimir tabla
+                        print("\nReporte mensual:\n")
+                        print("RUT        | Nombre    | Apellido   | Asistencias | Inasistencias | Justificaciones")
+                        print("-----------|-----------|------------|-------------|---------------|----------------")
+                        for persona in reporte:
+                            print(f"{persona['rut']:<11}| {persona['nombre']:<10}| {persona['apellido']:<11}|"
+                                  f"     {persona['asistencias']:<3}     |       {persona['inasistencias']:<3}     |"
+                                  f"       {persona['justificaciones']:<3}")
+                except Exception as e:
+                    print("Error procesando el reporte:", e)
+                    print("Respuesta recibida:", respuesta)
+
 
             else:
                 print("Funcionalidad aún no implementada para EMPLEADOR.")

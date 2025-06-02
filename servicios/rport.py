@@ -55,6 +55,7 @@ try:
                 LEFT JOIN JUSTIFICACIONES j ON u.id_usuario = j.id_usuario
                     AND EXTRACT(MONTH FROM j.fecha) = %s
                     AND EXTRACT(YEAR FROM j.fecha) = %s
+                WHERE u.rol = 'empleado'
                 GROUP BY u.rut, u.nombre, u.apellido
             """, (mes, anio, mes, anio))
 

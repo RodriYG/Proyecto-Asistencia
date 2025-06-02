@@ -21,6 +21,5 @@ for script in scripts:
     p = subprocess.Popen(["python", script])
     processes.append(p)
 
-# (Opcional) Esperar a que todos los procesos terminen
 for p in processes:
     p.wait()

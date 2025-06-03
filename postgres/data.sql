@@ -2,7 +2,7 @@ INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES
 ('111111111', 'Pedro', 'Pancho', 'pedro@mail.com', 'panchito123', 'empleado'),
 ('222222222', 'Ana', 'Ramirez', 'ana@mail.com', 'ana123', 'empleado'),
 ('333333333', 'Luis', 'Torres', 'luis@mail.com', 'luis123', 'empleado'),
-('444444444', 'Carla', 'Munoz', 'carla@mail.com', 'carla123', 'empleado'),
+('444444444', 'Carla', 'Muñoz', 'carla@mail.com', 'carla123', 'empleado'),
 ('555555555', 'Juan', 'Perez', 'juan@mail.com', 'juan123', 'empleado'),
 ('666666666', 'Sofia', 'Vega', 'sofia@mail.com', 'sofia123', 'empleado'),
 ('777777777', 'Mario', 'Lopez', 'mario@mail.com', 'mario123', 'empleado'),

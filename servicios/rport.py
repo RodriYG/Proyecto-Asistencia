@@ -111,7 +111,7 @@ while True:
 
         respuesta_json = json.dumps(resumen, ensure_ascii=False)
 
-        mensaje = f"RPORTOK|{respuesta_json}"
+        mensaje = f"RPORT|{respuesta_json}"
         salida_bytes = mensaje.encode('utf-8')
         header_out = f"{len(salida_bytes):05}".encode('utf-8')
         print("Enviando respuesta RPORT:", header_out + salida_bytes)

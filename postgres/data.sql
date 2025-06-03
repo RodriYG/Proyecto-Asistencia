@@ -1,2 +1,22 @@
-INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES ('111111111', 'Pedro', 'Pancho', 'pedro@mail.com', 'panchito', 'empleado');
+INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES
+('111111111', 'Pedro', 'Pancho', 'pedro@mail.com', 'panchito123', 'empleado'),
+('222222222', 'Ana', 'Ramirez', 'ana@mail.com', 'ana123', 'empleado'),
+('333333333', 'Luis', 'Torres', 'luis@mail.com', 'luis123', 'empleado'),
+('444444444', 'Carla', 'Munoz', 'carla@mail.com', 'carla123', 'empleado'),
+('555555555', 'Juan', 'Perez', 'juan@mail.com', 'juan123', 'empleado'),
+('666666666', 'Sofia', 'Vega', 'sofia@mail.com', 'sofia123', 'empleado'),
+('777777777', 'Mario', 'Lopez', 'mario@mail.com', 'mario123', 'empleado'),
+('888888888', 'Lucia', 'Herrera', 'lucia@mail.com', 'lucia123', 'empleado'),
+('999999999', 'Fernanda', 'Fernandez', 'fer@mail.com', 'fer123', 'empleado'),
+('101010101', 'Diego', 'Gomez', 'diego@mail.com', 'diego123', 'empleado'),
+('121212121', 'Valentina', 'Rojas', 'valentina@mail.com', 'vale123', 'empleado'),
+('131313131', 'Andres', 'Navarro', 'andres@mail.com', 'andres123', 'empleado'),
+('141414141', 'Camila', 'Soto', 'camila@mail.com', 'camila123', 'empleado'),
+('151515151', 'Ignacio', 'Pizarro', 'ignacio@mail.com', 'nacho123', 'empleado'),
+('161616161', 'Paula', 'Diaz', 'paula@mail.com', 'paula123', 'empleado'),
+('171717171', 'Javiera', 'Mora', 'javiera@mail.com', 'javi123', 'empleado'),
+('181818181', 'Cristian', 'Alvarez', 'cristian@mail.com', 'cris123', 'empleado'),
+('191919191', 'Nicole', 'Silva', 'nicole@mail.com', 'nicole123', 'empleado'),
+('202020202', 'Sebastian', 'Castro', 'sebastian@mail.com', 'sebas123', 'empleado'),
+('212121212', 'Francisca', 'Leiva', 'francisca@mail.com', 'fran123', 'empleado');
 INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES ('999999999', 'Fernanda', 'Fernandez', 'fran@mail.com', '12345678', 'empleador');

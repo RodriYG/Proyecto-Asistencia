@@ -1,3 +1,4 @@
+INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES ('999999999', 'Fernanda', 'Fernandez', 'fran@mail.com', '12345678', 'empleador');
 INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES
 ('111111111', 'Pedro', 'Pancho', 'pedro@mail.com', 'panchito123', 'empleado'),
 ('222222222', 'Ana', 'Ramirez', 'ana@mail.com', 'ana123', 'empleado'),
@@ -19,4 +20,3 @@ INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES
 ('191919191', 'Nicole', 'Silva', 'nicole@mail.com', 'nicole123', 'empleado'),
 ('202020202', 'Sebastian', 'Castro', 'sebastian@mail.com', 'sebas123', 'empleado'),
 ('212121212', 'Francisca', 'Leiva', 'francisca@mail.com', 'fran123', 'empleado');
-INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol) VALUES ('999999999', 'Fernanda', 'Fernandez', 'fran@mail.com', '12345678', 'empleador');

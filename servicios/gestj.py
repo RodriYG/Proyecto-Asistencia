@@ -1,7 +1,6 @@
 import socket
 import psycopg2
 
-# Conexión a PostgreSQL
 conn = psycopg2.connect(
     host="localhost",
     port=5432,
@@ -35,27 +34,63 @@ try:
 
         try:
             contenido = datos.decode()[5:].strip()
-            id_just, accion = contenido.split('|')
-            id_just = int(id_just)
-            accion = accion.strip().lower()
+            partes = contenido.split('|')
 
-            if accion not in ['aprobado', 'rechazado']:
-                respuesta = "GESTJNKAcción no válida"
-            else:
-                cursor.execute("SELECT estado FROM JUSTIFICACIONES WHERE id_justificacion = %s", (id_just,))
-                result = cursor.fetchone()
-                if not result:
-                    respuesta = "GESTJNKJustificación no encontrada"
-                elif result[0] != 'pendiente':
-                    respuesta = f"GESTJNKYa fue gestionada (estado actual: {result[0]})"
+            if len(partes) == 1:
+                rut = partes[0].strip()
+                cursor.execute("""
+                    SELECT j.id_justificacion, j.fecha, j.motivo
+                    FROM JUSTIFICACIONES j
+                    JOIN USUARIO u ON j.id_usuario = u.id_usuario
+                    WHERE u.rut = %s AND j.estado = 'pendiente'
+                    ORDER BY j.fecha;
+                """, (rut,))
+                filas = cursor.fetchall()
+
+                if not filas:
+                    respuesta = "GESTJOKNo hay justificaciones pendientes."
+                else:
+                    fragmentos = [
+                        f"{idj}|{fecha.strftime('%Y-%m-%d')}|{motivo}" for idj, fecha, motivo in filas
+                    ]
+                    respuesta = "GESTJOK" + ";;".join(fragmentos)
+
+            elif len(partes) == 3:
+                id_just, accion, rut = partes
+                accion = accion.strip().lower()
+                rut = rut.strip()
+
+                if not id_just.isdigit():
+                    raise ValueError("ID no es un número entero.")
+
+                id_just = int(id_just)
+
+                if accion not in ['aprobado', 'rechazado']:
+                    respuesta = "GESTJNKAcción no válida"
                 else:
                     cursor.execute("""
-                        UPDATE JUSTIFICACIONES
-                        SET estado = %s
-                        WHERE id_justificacion = %s
-                    """, (accion, id_just))
-                    conn.commit()
-                    respuesta = f"GESTJOKJustificación {accion} exitosamente"
+                        SELECT j.estado
+                        FROM JUSTIFICACIONES j
+                        JOIN USUARIO u ON j.id_usuario = u.id_usuario
+                        WHERE j.id_justificacion = %s AND u.rut = %s
+                    """, (id_just, rut))
+                    result = cursor.fetchone()
+
+                    if not result:
+                        respuesta = "GESTJNKJustificación no encontrada o no corresponde al RUT indicado"
+                    elif result[0] != 'pendiente':
+                        respuesta = f"GESTJNKYa fue gestionada (estado actual: {result[0]})"
+                    else:
+                        cursor.execute("""
+                            UPDATE JUSTIFICACIONES
+                            SET estado = %s
+                            WHERE id_justificacion = %s
+                        """, (accion, id_just))
+                        conn.commit()
+                        respuesta = f"GESTJOKJustificación {accion} exitosamente"
+
+            else:
+                respuesta = "GESTJNKFormato inválido"
 
         except Exception as e:
             print("Error:", e)

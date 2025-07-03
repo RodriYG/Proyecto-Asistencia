@@ -23,7 +23,9 @@ def enviar_transaccion(servicio, datos):
                 break
             buffer += chunk
 
-        respuesta = buffer.decode('utf-8')
+        buffer = buffer[:largo]  # ✅ recorta si se pasó
+        respuesta = buffer.decode('utf-8', errors='ignore')  # ✅ evita error de bytes inválidos
+
     print(f"Recibido (con largo): {largo:05}{respuesta}")
     return respuesta
 

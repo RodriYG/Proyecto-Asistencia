@@ -1,6 +1,6 @@
 import socket
 import psycopg2
-from datetime import datetime, time
+from datetime import datetime
 
 # Conexión a PostgreSQL
 conn = psycopg2.connect(
@@ -36,50 +36,80 @@ try:
             continue
 
         try:
-            contenido = datos.decode()[5:]
-            partes = contenido.strip().split('|')
+            contenido = datos.decode().strip()
+            print("Contenido recibido:", contenido)
+
+            if not contenido.startswith("MODAS"):
+                raise ValueError("Prefijo inválido. Se esperaba 'MODAS'.")
+
+            contenido = contenido[5:].strip()
+            partes = contenido.split('|')
 
             if len(partes) != 5:
-                raise ValueError("Formato incorrecto. Se esperaban 5 partes.")
+                raise ValueError("Formato incorrecto. Se esperaban 5 partes: rut|fecha|hora|motivo|autorizado.")
 
-            rut = partes[0].strip()
-            fecha_str = partes[1].strip()  
-            nueva_hora_str = partes[2].strip()
-            motivo = partes[3].strip()
-            autorizado = partes[4].strip()
+            rut, fecha_str, nueva_hora_str, motivo, autorizado = [p.strip() for p in partes]
 
-            fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
-            nueva_hora = datetime.strptime(nueva_hora_str, "%H:%M").time()
+            # Validar campos vacíos
+            if any(not campo for campo in [rut, fecha_str, nueva_hora_str, motivo, autorizado]):
+                raise ValueError("Ningún campo puede estar vacío.")
 
+            # Validar RUTs numéricos
+            if not rut.isdigit():
+                raise ValueError("El RUT del empleado debe contener solo números.")
+            if not autorizado.isdigit():
+                raise ValueError("El RUT autorizado debe contener solo números.")
+
+            # Validar fecha
+            try:
+                fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError("La fecha debe tener formato YYYY-MM-DD.")
+
+            # Validar hora
+            try:
+                nueva_hora = datetime.strptime(nueva_hora_str, "%H:%M").time()
+            except ValueError:
+                raise ValueError("La hora debe tener formato HH:MM.")
+
+            # Validar que el usuario exista
             cursor.execute("SELECT id_usuario FROM USUARIO WHERE rut = %s", (rut,))
             user = cursor.fetchone()
-
             if not user:
-                mensaje = "MODAS|NK|Empleado no encontrado"
-            else:
-                id_usuario = user[0]
+                raise ValueError("Empleado no encontrado.")
+            id_usuario = user[0]
 
-                cursor.execute("""
-                    SELECT id_asistencia, hora_entrada, hora_salida
-                    FROM ASISTENCIAS
-                    WHERE id_usuario = %s AND fecha = %s
-                """, (id_usuario, fecha))
-                asistencia = cursor.fetchone()
+            # Validar que el usuario autorizador exista
+            cursor.execute("SELECT 1 FROM USUARIO WHERE rut = %s", (autorizado,))
+            if not cursor.fetchone():
+                raise ValueError("El RUT autorizado no existe.")
 
-                if not asistencia:
-                    mensaje = "MODAS|NK|No existe asistencia en esa fecha"
-                else:
-                    id_asistencia, entrada, salida = asistencia
-                    cursor.execute("""
-                        UPDATE ASISTENCIAS
-                        SET hora_entrada = %s
-                        WHERE id_asistencia = %s
-                    """, (nueva_hora, id_asistencia))
+            # Validar que exista una asistencia en esa fecha
+            cursor.execute("""
+                SELECT id_asistencia, hora_entrada
+                FROM ASISTENCIAS
+                WHERE id_usuario = %s AND fecha = %s
+            """, (id_usuario, fecha))
+            asistencia = cursor.fetchone()
 
-                    conn.commit()
-                    mensaje = f"MODAS|OK|Entrada modificada: {entrada} -> {nueva_hora}"
+            if not asistencia:
+                raise ValueError("No existe asistencia en esa fecha.")
+
+            id_asistencia, entrada_anterior = asistencia
+
+            # Realizar modificación
+            cursor.execute("""
+                UPDATE ASISTENCIAS
+                SET hora_entrada = %s
+                WHERE id_asistencia = %s
+            """, (nueva_hora, id_asistencia))
+
+            conn.commit()
+            mensaje = f"MODAS|OK|Entrada modificada: {entrada_anterior} -> {nueva_hora}"
 
         except Exception as e:
+            conn.rollback()
+            print("Error:", e)
             mensaje = f"MODAS|NK|Error: {str(e)}"
 
         largo = f"{len(mensaje):05}"

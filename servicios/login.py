@@ -33,11 +33,24 @@ try:
             print("sinit recibido")
             continue
 
-        entrada = data.decode()[5:].strip()
+        entrada = data.decode().strip()
         print(f"Datos recibidos: {entrada}")
 
         try:
-            email, password = entrada.split()
+            if not entrada.startswith("LOGIN"):
+                raise ValueError("Prefijo inválido. Se esperaba LOGIN.")
+
+            entrada = entrada[5:].strip()
+
+            if not entrada:
+                raise ValueError("Debe ingresar correo y contraseña.")
+
+            partes = entrada.split()
+            if len(partes) != 2:
+                raise ValueError("Formato incorrecto. Use: correo contraseña")
+
+            email, password = partes
+            email = email.lower()  # Normaliza el email (opcional)
 
             cursor.execute(
                 "SELECT rol, rut FROM USUARIO WHERE email = %s AND password = %s",

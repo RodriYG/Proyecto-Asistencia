@@ -35,27 +35,66 @@ try:
             continue
 
         try:
-            contenido = datos.decode()[5:].strip()
-            rut, fecha_str, motivo = contenido.split('|')
-            rut = int(rut.strip())
-            fecha = datetime.strptime(fecha_str.strip(), '%Y-%m-%d').date()
+            contenido = datos.decode().strip()
+            print("Contenido recibido:", contenido)
+
+            if not contenido.startswith("JUSTI"):
+                raise ValueError("Prefijo inválido. Se esperaba 'JUSTI'.")
+
+            contenido = contenido[5:].strip()
+            partes = contenido.split('|')
+
+            if len(partes) != 3:
+                raise ValueError("Formato incorrecto. Se esperaban: rut|fecha|motivo.")
+
+            rut_str, fecha_str, motivo = [p.strip() for p in partes]
+
+            if not rut_str or not fecha_str or not motivo:
+                raise ValueError("Ningún campo puede estar vacío.")
+
+            if not rut_str.isdigit():
+                raise ValueError("El RUT debe contener solo números.")
+
+            rut = int(rut_str)
+
+            try:
+                fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            except ValueError:
+                raise ValueError("La fecha debe tener formato YYYY-MM-DD.")
+
+            if fecha > datetime.now().date():
+                raise ValueError("No se puede justificar una inasistencia en una fecha futura.")
+
             fecha_solicitud = datetime.now()
 
+            # Verificar existencia del usuario
             cursor.execute("SELECT id_usuario FROM USUARIO WHERE rut = %s", (rut,))
             user = cursor.fetchone()
 
             if not user:
-                respuesta = "JUSTINKUsuario no encontrado"
-            else:
-                id_usuario = user[0]
-                cursor.execute("""
-                    INSERT INTO JUSTIFICACIONES (id_usuario, fecha, motivo, estado, fecha_solicitud)
-                    VALUES (%s, %s, %s, 'pendiente', %s)
-                """, (id_usuario, fecha, motivo, fecha_solicitud))
-                conn.commit()
-                respuesta = "JUSTIOKJustificación registrada como pendiente"
+                raise ValueError("Usuario no encontrado.")
+
+            id_usuario = user[0]
+
+            # Verificar si ya existe una justificación para esa fecha
+            cursor.execute("""
+                SELECT 1 FROM JUSTIFICACIONES
+                WHERE id_usuario = %s AND fecha = %s
+            """, (id_usuario, fecha))
+
+            if cursor.fetchone():
+                raise ValueError("Ya existe una justificación registrada para esa fecha.")
+
+            # Insertar justificación
+            cursor.execute("""
+                INSERT INTO JUSTIFICACIONES (id_usuario, fecha, motivo, estado, fecha_solicitud)
+                VALUES (%s, %s, %s, 'pendiente', %s)
+            """, (id_usuario, fecha, motivo, fecha_solicitud))
+            conn.commit()
+            respuesta = "JUSTIOKJustificación registrada como pendiente"
 
         except Exception as e:
+            conn.rollback()
             print("Error:", e)
             respuesta = f"JUSTINKError: {str(e)}"
 

@@ -1,5 +1,6 @@
 import socket
 import psycopg2
+import re
 
 # Conexión a PostgreSQL
 conn = psycopg2.connect(
@@ -21,6 +22,9 @@ print("Enviando sinit:", sinit)
 sock.sendall(sinit)
 esperando_sinit = True
 
+def rut_valido(rut):
+    return bool(re.fullmatch(r"\d{7,9}", rut))  # solo números, largo razonable
+
 try:
     while True:
         print("Esperando transacción...")
@@ -33,18 +37,26 @@ try:
             print("sinit recibido")
             continue
 
-        rut = data.decode()[5:].strip()
-        print("Buscando RUT:", rut)
-
         try:
+            rut = data.decode()[5:].strip()
+            print("Buscando RUT:", rut)
+
+            if not rut:
+                raise ValueError("El RUT está vacío")
+
+            if not rut_valido(rut):
+                raise ValueError("Formato de RUT inválido (debe contener solo números y tener entre 7 y 9 dígitos)")
+
             cursor.execute("""
                 SELECT nombre, apellido, email, rol FROM USUARIO WHERE rut = %s
             """, (rut,))
-            user = cursor.fetchone()
+            users = cursor.fetchall()
 
-            if user:
-                nombre, apellido, email, rol = user
+            if len(users) == 1:
+                nombre, apellido, email, rol = users[0]
                 mensaje = f"BUSCAOKNombre: {nombre} {apellido}, Email: {email}, Rol: {rol}"
+            elif len(users) > 1:
+                mensaje = "BUSCANKError: Hay múltiples usuarios con ese RUT (inconsistencia en base de datos)"
             else:
                 mensaje = "BUSCANKNo se encontró un empleado con ese RUT"
 

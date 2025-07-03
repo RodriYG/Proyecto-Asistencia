@@ -33,8 +33,8 @@ try:
             print("sinit recibido")
             continue
 
-        contenido = data.decode()[5:].strip()
-        partes = contenido.split('|')
+        contenido = data.decode().strip()
+        partes = contenido[5:].split('|')  # quitar 'TUPER'
 
         try:
             if len(partes) != 3:
@@ -44,20 +44,44 @@ try:
             fecha_inicio_str = partes[1].strip()
             fecha_fin_str = partes[2].strip()
 
+            if not rut or not fecha_inicio_str or not fecha_fin_str:
+                raise ValueError("Todos los campos deben estar completos.")
+
+            # Validar fechas
+            fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
+            fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
+
+            if fecha_fin < fecha_inicio:
+                raise ValueError("La fecha de fin no puede ser anterior a la fecha de inicio.")
+
+            if (fecha_fin - fecha_inicio).days > 60:
+                raise ValueError("No se permite asignar turnos por más de 60 días.")
+
+            # Verificar que el usuario exista
             cursor.execute("SELECT id_usuario FROM USUARIO WHERE rut = %s", (rut,))
             user = cursor.fetchone()
             if not user:
                 raise ValueError("Empleado no encontrado.")
 
             id_usuario = user[0]
+            id_turno = 1  # Turno genérico por defecto
 
-            fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
-            fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
-            if fecha_fin < fecha_inicio:
-                raise ValueError("La fecha de fin no puede ser anterior a la fecha de inicio.")
+            # Verificar solapamientos
+            cursor.execute("""
+                SELECT 1 FROM TURNOS_ASIGNADOS
+                WHERE id_usuario = %s
+                AND (
+                    (%s BETWEEN fecha_inicio AND fecha_fin) OR
+                    (%s BETWEEN fecha_inicio AND fecha_fin) OR
+                    (fecha_inicio BETWEEN %s AND %s) OR
+                    (fecha_fin BETWEEN %s AND %s)
+                )
+            """, (id_usuario, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin))
 
-            id_turno = 1
+            if cursor.fetchone():
+                raise ValueError("Ya existe un turno asignado en ese rango de fechas.")
 
+            # Insertar nuevo turno
             cursor.execute("""
                 INSERT INTO TURNOS_ASIGNADOS (id_usuario, id_turno, fecha_inicio, fecha_fin)
                 VALUES (%s, %s, %s, %s)

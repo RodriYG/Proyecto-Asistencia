@@ -62,7 +62,7 @@ try:
                     hf = hora_f.strftime('%H:%M') if hora_f else "N/A"
                     fi_str = fi.strftime('%Y-%m-%d')
                     ff_str = ff.strftime('%Y-%m-%d')
-                    lineas.append(f"{fi_str} a {ff_str} → {desc} ({hi}-{hf})")
+                    lineas.append(f"{fi_str} a {ff_str} → {desc} ")
 
                 contenido = " ;; ".join(lineas)
                 mensaje = f"VTURNOK{contenido}"

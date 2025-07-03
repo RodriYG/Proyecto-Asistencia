@@ -29,29 +29,55 @@ try:
             print("Sinit REGEL recibido.")
             continue
 
-        contenido = datos.decode()[5:].strip()
-        partes = contenido.split('|')
+        contenido = datos.decode().strip()
+        print("Contenido recibido:", contenido)
 
         try:
+            contenido = contenido[5:].strip()  # eliminar prefijo REGEL si existe
+            partes = contenido.split('|')
+
             if len(partes) == 1:
-                rut = partes[0]
+                # Eliminar trabajador
+                rut = partes[0].strip()
+
+                if not rut:
+                    raise ValueError("Debe proporcionar un RUT.")
+
+                cursor.execute("SELECT 1 FROM USUARIO WHERE rut = %s", (rut,))
+                if not cursor.fetchone():
+                    raise ValueError("No se encontró ningún trabajador con ese RUT.")
+
                 cursor.execute("DELETE FROM USUARIO WHERE rut = %s", (rut,))
                 conn.commit()
                 mensaje = "REGELOK|Trabajador eliminado correctamente"
 
             elif len(partes) == 6:
-                rut, nombre, apellido, email, password, rol = partes
+                # Registrar trabajador
+                rut, nombre, apellido, email, password, rol = [p.strip() for p in partes]
+
+                if any(not campo for campo in [rut, nombre, apellido, email, password, rol]):
+                    raise ValueError("Todos los campos deben estar completos.")
+
+                if rol.lower() not in ["empleado", "empleador"]:
+                    raise ValueError("El rol debe ser 'empleado' o 'empleador'.")
+
+                # Verificar que no exista duplicado
+                cursor.execute("SELECT 1 FROM USUARIO WHERE rut = %s OR email = %s", (rut, email))
+                if cursor.fetchone():
+                    raise ValueError("Ya existe un trabajador con ese RUT o correo.")
+
                 cursor.execute("""
                     INSERT INTO USUARIO (rut, nombre, apellido, email, password, rol)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                """, (rut, nombre, apellido, email, password, rol))
+                """, (rut, nombre, apellido, email, password, rol.lower()))
                 conn.commit()
                 mensaje = "REGELOK|Trabajador registrado correctamente"
 
             else:
-                mensaje = "REGELNK|Formato inválido"
+                raise ValueError("Formato inválido. Se esperaban 1 o 6 campos.")
 
         except Exception as e:
+            conn.rollback()
             mensaje = f"REGELNK|Error: {str(e)}"
 
         largo = f"{len(mensaje):05}"

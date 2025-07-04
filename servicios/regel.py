@@ -33,7 +33,7 @@ try:
         print("Contenido recibido:", contenido)
 
         try:
-            contenido = contenido[5:].strip()  # eliminar prefijo REGEL si existe
+            contenido = contenido[5:].strip()  # eliminar prefijo REGEL
             partes = contenido.split('|')
 
             if len(partes) == 1:
@@ -43,13 +43,16 @@ try:
                 if not rut:
                     raise ValueError("Debe proporcionar un RUT.")
 
+                if not rut.isdigit() or not (7 <= len(rut) <= 9):
+                    raise ValueError("El RUT debe contener solo números y tener entre 7 y 9 dígitos.")
+
                 cursor.execute("SELECT 1 FROM USUARIO WHERE rut = %s", (rut,))
                 if not cursor.fetchone():
                     raise ValueError("No se encontró ningún trabajador con ese RUT.")
 
                 cursor.execute("DELETE FROM USUARIO WHERE rut = %s", (rut,))
                 conn.commit()
-                mensaje = "REGELOK|Trabajador eliminado correctamente"
+                mensaje = "REGELOK| Trabajador eliminado correctamente"
 
             elif len(partes) == 6:
                 # Registrar trabajador
@@ -57,6 +60,9 @@ try:
 
                 if any(not campo for campo in [rut, nombre, apellido, email, password, rol]):
                     raise ValueError("Todos los campos deben estar completos.")
+
+                if not rut.isdigit() or not (7 <= len(rut) <= 9):
+                    raise ValueError("El RUT debe contener solo números y tener entre 7 y 9 dígitos.")
 
                 if rol.lower() not in ["empleado", "empleador"]:
                     raise ValueError("El rol debe ser 'empleado' o 'empleador'.")
@@ -71,7 +77,7 @@ try:
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (rut, nombre, apellido, email, password, rol.lower()))
                 conn.commit()
-                mensaje = "REGELOK|Trabajador registrado correctamente"
+                mensaje = "REGELOK| Trabajador registrado correctamente"
 
             else:
                 raise ValueError("Formato inválido. Se esperaban 1 o 6 campos.")

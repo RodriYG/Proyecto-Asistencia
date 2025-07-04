@@ -91,16 +91,18 @@ try:
                 VALUES (%s, %s, %s, 'pendiente', %s)
             """, (id_usuario, fecha, motivo, fecha_solicitud))
             conn.commit()
-            respuesta = "JUSTIOKJustificación registrada como pendiente"
+            estado = "OK"
+            mensaje = "Justificación registrada como pendiente"
 
         except Exception as e:
             conn.rollback()
-            print("Error:", e)
-            respuesta = f"JUSTINKError: {str(e)}"
+            estado = "NK"
+            mensaje = f"Error: {str(e)}"
 
-        mensaje_respuesta = f"{len(respuesta):05}{respuesta}"
-        print("Enviando respuesta:", mensaje_respuesta)
-        sock.sendall(mensaje_respuesta.encode())
+        respuesta_final = f"JUSTI|{estado}|{mensaje}"
+        largo_respuesta = f"{len(respuesta_final):05}"
+        print("Enviando respuesta:", respuesta_final)
+        sock.sendall(f"{largo_respuesta}{respuesta_final}".encode())
 
 finally:
     cursor.close()

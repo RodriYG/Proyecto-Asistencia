@@ -47,7 +47,7 @@ try:
             user = cursor.fetchone()
 
             if not user:
-                mensaje = "MASISUsuario no encontrado NK -"
+                mensaje = "MASIS Usuario no encontrado NK -"
             else:
                 id_usuario = user[0]
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -67,7 +67,7 @@ try:
                             VALUES (%s, %s, %s)
                         """, (id_usuario, hoy, datetime.now().time()))
                         conn.commit()
-                        mensaje = f"MASISEntrada registrada OK {timestamp}"
+                        mensaje = f"MASIS Entrada registrada OK {timestamp}"
 
                 elif tipo == "salida":
                     cursor.execute("""

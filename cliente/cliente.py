@@ -1,11 +1,12 @@
 import socket
 import json
+import re
 from datetime import datetime
 
 def enviar_transaccion(servicio, datos):
     cuerpo = f"{servicio}{datos}"
     mensaje = f"{len(cuerpo):05}{cuerpo}".encode('utf-8')
-    print(f"Enviando (con largo): {mensaje.decode('utf-8')}")
+    #print(f"Enviando (con largo): {mensaje.decode('utf-8')}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect(('localhost', 5000))
@@ -26,7 +27,7 @@ def enviar_transaccion(servicio, datos):
         buffer = buffer[:largo]  # ✅ recorta si se pasó
         respuesta = buffer.decode('utf-8', errors='ignore')  # ✅ evita error de bytes inválidos
 
-    print(f"Recibido (con largo): {largo:05}{respuesta}")
+    #print(f"Recibido (con largo): {largo:05}{respuesta}")
     return respuesta
 
 def input_validado(prompt, validacion, mensaje_error="Entrada inválida. Intente de nuevo."):
@@ -104,6 +105,51 @@ def paginar_reporte(mes, anio, page_size=8):
 
         offset += page_size
 
+def paginar_historial(rut, fecha_ini, fecha_fin, page_size=10):
+    offset = 0
+    while True:
+        datos = f"{rut}|{fecha_ini}|{fecha_fin}|{offset}"
+        respuesta = enviar_transaccion("HISTO", datos)
+
+        if respuesta.startswith("HISTOOK— Fin"):
+            print("\n— Fin del historial —")
+            return
+        elif respuesta.startswith("HISTOOKNo hay"):
+            print("No hay asistencias en el rango indicado.")
+            return
+        elif respuesta.startswith("HISTONK"):
+            print("Error:", respuesta[7:])
+            return
+        elif respuesta.startswith("HISTOOK"):
+            # Limpiar el prefijo y salto de línea si viene así del servidor
+            contenido = respuesta.replace("HISTOOK", "", 1).strip()
+            lineas = contenido.splitlines()
+
+            if not lineas:
+                print("\n— Fin del historial —")
+                return
+
+            print("\nHistorial:")
+            for linea in lineas:
+                print(linea)
+
+            if len(lineas) < page_size:
+                print("\n— Fin del historial —")
+                return
+
+            seguir = input("\n¿Mostrar siguientes 10? (s/n): ").strip().lower()
+            if seguir != 's':
+                print("Fin del historial.")
+                return
+
+            offset += len(lineas)
+
+        else:
+            print("Respuesta inesperada:", respuesta)
+            return
+
+
+
 def mostrar_menu_rol(rol, rut):
     while True:
         print(f"\n--- Menú de {rol.upper()} ---")
@@ -132,7 +178,13 @@ def mostrar_menu_rol(rol, rut):
                 tipo = input_validado("¿Qué deseas marcar? (entrada/salida): ", lambda t: t in ["entrada", "salida"], "Tipo inválido.")
                 datos = f"{rut} {tipo}"
                 resp = enviar_transaccion("MASIS", datos)
-                print("Respuesta:", resp)
+
+                if resp.startswith("MASISOK"):
+                    print(resp[7:].strip())
+                elif resp.startswith("MASISNK"):
+                    print(resp[7:].strip())
+                else:
+                    print("Respuesta inesperada:", resp)
 
             elif op == "2":
                 fecha = input_validado("Fecha a justificar (YYYY-MM-DD): ", es_fecha_valida, "Formato de fecha inválido. Use YYYY-MM-DD.")
@@ -141,12 +193,13 @@ def mostrar_menu_rol(rol, rut):
                 resp = enviar_transaccion("JUSTI", datos)
                 print("Respuesta:", resp)
 
+
             elif op == "3":
                 fecha_inicio = input_validado("Fecha de inicio (YYYY-MM-DD): ", es_fecha_valida)
                 fecha_fin = input_validado("Fecha de fin (YYYY-MM-DD): ", es_fecha_valida)
-                datos = f"{rut}|{fecha_inicio}|{fecha_fin}"
-                resp = enviar_transaccion("HISTO", datos)
-                print("Historial:\n", resp)
+                paginar_historial(rut, fecha_inicio, fecha_fin)
+
+
 
             elif op == "4":
                 resp = enviar_transaccion("VTURN", rut)
@@ -165,8 +218,13 @@ def mostrar_menu_rol(rol, rut):
             if op == "1":
                 rut_buscar = input("Ingrese el RUT del empleado a buscar: ").strip()
                 resp = enviar_transaccion("BUSCA", rut_buscar)
-                print("Resultado:\n", resp)
-
+            
+                if resp.startswith("BUSCAOK"):
+                    print("Resultado:\n", resp[len("BUSCAOK"):].lstrip("OK").strip())
+                elif resp.startswith("BUSCANK"):
+                    print("Error:\n", resp[len("BUSCANK"):].strip())
+                else:
+                    print("Respuesta inesperada:", resp)
             elif op == "2":
                 rut_emp = input("RUT del empleado: ").strip()
                 f_ini = input_validado("Fecha de inicio del turno (YYYY-MM-DD): ", es_fecha_valida)
@@ -179,9 +237,10 @@ def mostrar_menu_rol(rol, rut):
                 rut_emp = input("RUT del empleado: ").strip()
                 f_ini = input_validado("Fecha de inicio (YYYY-MM-DD): ", es_fecha_valida)
                 f_fin = input_validado("Fecha de fin (YYYY-MM-DD): ", es_fecha_valida)
-                datos = f"{rut_emp}|{f_ini}|{f_fin}"
-                resp = enviar_transaccion("HISTO", datos)
-                print("Historial del empleado:\n", resp)
+                print(f"Mostrando historial para {rut_emp} entre {f_ini} y {f_fin}...")
+                paginar_historial(rut_emp, f_ini, f_fin)
+
+
 
             elif op == "4":
                 rut_emp = input("RUT del empleado a modificar: ").strip()
@@ -191,10 +250,18 @@ def mostrar_menu_rol(rol, rut):
                 autorizado = rut
                 datos = f"{rut_emp}|{fecha}|{nueva_hora}|{motivo}|{autorizado}"
                 resp = enviar_transaccion("MODAS", datos)
-                print("Resultado modificación:\n", resp)
+
+                if resp.startswith("MODASOK|"):
+                    print("Resultado modificación:\n", resp[11:])  # omite "MODASOK|"
+                elif resp.startswith("MODASNK|"):
+                    print("Error al modificar asistencia:\n", resp[9:])  # omite "MODASNK|"
+                else:
+                    print("Respuesta inesperada:\n", resp)
+
 
             elif op == "5":
                 sub = input_validado("¿Registrar (r) o eliminar (e) un trabajador?: ", lambda x: x in ['r', 'e'], "Opción inválida.")
+                
                 if sub == "r":
                     rut_nuevo = input("RUT: ").strip()
                     nom = input("Nombre: ").strip()
@@ -204,11 +271,19 @@ def mostrar_menu_rol(rol, rut):
                     rol_nuevo = input_validado("Rol (empleado/empleador): ", lambda r: r in ["empleado", "empleador"], "Rol inválido.")
                     datos = f"{rut_nuevo}|{nom}|{ape}|{email}|{pw}|{rol_nuevo}"
                     resp = enviar_transaccion("REGEL", datos)
-                    print("Resultado registro:\n", resp)
+            
                 elif sub == "e":
                     rut_elim = input("RUT a eliminar: ").strip()
                     resp = enviar_transaccion("REGEL", rut_elim)
-                    print("Resultado eliminación:\n", resp)
+            
+                # Mostrar respuesta limpia
+                if resp.startswith("REGELOKOK|"):
+                    print("Resultado:\n", resp[11:])  # omite "REGELOKOK|"
+                elif resp.startswith("REGELNK|"):
+                    print("Error:\n", resp[8:])  # omite "REGELNK|"
+                else:
+                    print("Respuesta desconocida:\n", resp)
+
 
             elif op == "6":
                 mes = int(input_validado("Mes (1-12): ", lambda x: x.isdigit() and 1 <= int(x) <= 12, "Mes inválido. Debe ser un número entre 1 y 12."))
@@ -224,21 +299,21 @@ def mostrar_menu_rol(rol, rut):
                     lambda x: len(x) > 0,
                     "Debe ingresar un RUT."
                 )
-            
+
                 resp = enviar_transaccion("GESTJ", rut_objetivo)
-            
+
                 if resp.startswith("GESTJNK"):
-                    print("Error desde el servicio GESTJ:", resp[7:])
+                    print("Error desde el servicio GESTJ:", resp[8:])  # Elimina 'GESTJNK'
                     return
-            
-                elif resp.startswith("GESTJOKNo hay"):
+
+                elif "No hay justificaciones" in resp:
                     print("No hay justificaciones pendientes para este usuario.")
-                    return
-            
+                    continue
+
                 elif resp.startswith("GESTJOK"):
-                    contenido = resp[len("GESTJOK"):].strip()
+                    contenido = resp[8:].strip()  # Elimina 'GESTJOK'
                     justificaciones = contenido.split(";;")
-            
+
                     print("\nJustificaciones pendientes:")
                     ids_limpios = []
                     for idx, just in enumerate(justificaciones):
@@ -250,7 +325,7 @@ def mostrar_menu_rol(rol, rut):
                             print(f"{idx+1}. (Error en formato): {just}")
                             ids_limpios.append(None)
                             continue
-            
+
                     seleccion = input_validado(
                         "Seleccione el número de la justificación que desea gestionar: ",
                         lambda x: x.isdigit() and 1 <= int(x) <= len(justificaciones),
@@ -263,7 +338,14 @@ def mostrar_menu_rol(rol, rut):
                         print("No se puede gestionar esta justificación debido a un error de formato.")
                         return
 
-                    id_just = id_just.replace("OK", "")
+                    # Limpia cualquier carácter no numérico en el ID
+                    id_just = re.sub(r'\D', '', id_just)
+
+                    if not id_just:
+                        print("El ID de justificación no contiene números válidos.")
+                        return
+
+                    id_just = int(id_just)
 
                     accion = input_validado(
                         "¿Desea aprobar o rechazar? (aprobado/rechazado): ",
@@ -273,11 +355,17 @@ def mostrar_menu_rol(rol, rut):
 
                     datos = f"{id_just}|{accion.lower()}|{rut_objetivo}"
                     resultado = enviar_transaccion("GESTJ", datos)
-                    print("Resultado:", resultado)
 
-            
+                    if resultado.startswith("GESTJOKOK"):
+                        print("Resultado:", resultado[10:])  # Elimina 'GESTJOKOK'
+                    elif resultado.startswith("GESTJNK"):
+                        print("Error:", resultado[8:])       # Elimina 'GESTJNK'
+                    else:
+                        print("Respuesta desconocida:", resultado)
+
                 else:
                     print("Respuesta inesperada desde GESTJ:", resp)
+
 
             else:
                 print("Funcionalidad aún no implementada para EMPLEADOR.")

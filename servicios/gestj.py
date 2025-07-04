@@ -61,7 +61,7 @@ try:
                 filas = cursor.fetchall()
 
                 if not filas:
-                    respuesta = "GESTJOKNo hay justificaciones pendientes para este usuario."
+                    respuesta = "GESTJOK No hay justificaciones pendientes para este usuario."
                 else:
                     fragmentos = [
                         f"{idj}|{fecha.strftime('%Y-%m-%d')}|{motivo}" for idj, fecha, motivo in filas
@@ -91,9 +91,9 @@ try:
                 result = cursor.fetchone()
 
                 if not result:
-                    respuesta = "GESTJNKJustificación no encontrada o no corresponde al RUT indicado."
+                    respuesta = "GESTJNK Justificación no encontrada o no corresponde al RUT indicado."
                 elif result[0] != 'pendiente':
-                    respuesta = f"GESTJNKYa fue gestionada (estado actual: {result[0]})."
+                    respuesta = f"GESTJNK Ya fue gestionada (estado actual: {result[0]})."
                 else:
                     cursor.execute("""
                         UPDATE JUSTIFICACIONES
@@ -101,7 +101,7 @@ try:
                         WHERE id_justificacion = %s
                     """, (accion, id_just))
                     conn.commit()
-                    respuesta = f"GESTJOKJustificación {accion} exitosamente."
+                    respuesta = f"GESTJOK Justificación {accion} exitosamente."
 
             else:
                 raise ValueError("Formato inválido. Se esperaban 1 o 3 campos.")

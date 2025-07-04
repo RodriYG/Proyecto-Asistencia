@@ -26,7 +26,12 @@ try:
     while True:
         print("Esperando transacción HISTO...")
         largo = int(sock.recv(5))
-        data = sock.recv(largo)
+
+        # Leer todo el cuerpo
+        data = b""
+        while len(data) < largo:
+            data += sock.recv(largo - len(data))
+
         print("Recibido:", data)
 
         if esperando_sinit:
@@ -35,20 +40,39 @@ try:
             continue
 
         try:
-            contenido = data.decode()[5:]
-            partes = contenido.strip().split('|')
-            if len(partes) != 3:
-                raise ValueError("Formato incorrecto. Se esperaban 3 partes.")
+            contenido = data.decode().strip()
+            if not contenido.startswith("HISTO"):
+                raise ValueError("Prefijo inválido. Se esperaba 'HISTO'.")
 
-            rut, fecha_inicio_str, fecha_fin_str = partes
-            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
-            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+            contenido = contenido[5:].strip()
+            partes = contenido.split('|')
+
+            if len(partes) != 4:
+                raise ValueError("Formato incorrecto. Se esperaban: rut|fecha_inicio|fecha_fin|offset.")
+
+            rut, fecha_inicio_str, fecha_fin_str, offset_str = [p.strip() for p in partes]
+
+            if not rut.isdigit() or not (7 <= len(rut) <= 9):
+                raise ValueError("El RUT debe contener solo números y tener entre 7 y 9 dígitos.")
+
+            try:
+                fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+                fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+            except ValueError:
+                raise ValueError("Formato de fecha inválido. Use YYYY-MM-DD.")
+
+            if fecha_fin < fecha_inicio:
+                raise ValueError("La fecha de fin no puede ser anterior a la de inicio.")
+
+            if not offset_str.isdigit():
+                raise ValueError("El offset debe ser un número entero.")
+            offset = int(offset_str)
 
             cursor.execute("SELECT id_usuario FROM USUARIO WHERE rut = %s", (rut,))
             usuario = cursor.fetchone()
 
             if not usuario:
-                mensaje = "HISTONKUsuario no encontrado"
+                respuesta = "HISTONKUsuario no encontrado"
             else:
                 id_usuario = usuario[0]
 
@@ -57,24 +81,34 @@ try:
                     FROM ASISTENCIAS
                     WHERE id_usuario = %s AND fecha BETWEEN %s AND %s
                     ORDER BY fecha ASC
-                """, (id_usuario, fecha_inicio, fecha_fin))
+                    LIMIT 10 OFFSET %s
+                """, (id_usuario, fecha_inicio, fecha_fin, offset))
 
                 registros = cursor.fetchall()
+
                 if not registros:
-                    mensaje = "HISTOOKSin registros en el rango indicado"
+                    if offset == 0:
+                        respuesta = "HISTOOKNo hay registros en ese rango de fechas."
+                    else:
+                        respuesta = "HISTOOK— Fin del historial —"
                 else:
-                    mensaje = "HISTOOKHistorial de asistencias:\n"
+                    lineas = []
                     for fecha, entrada, salida in registros:
                         entrada_str = entrada.strftime('%H:%M:%S') if entrada else "N/A"
                         salida_str = salida.strftime('%H:%M:%S') if salida else "N/A"
-                        mensaje += f"{fecha} - Entrada: {entrada_str}, Salida: {salida_str}\n"
+                        lineas.append(f"{fecha} - Entrada: {entrada_str}, Salida: {salida_str}")
+                    
+                    historial = "\n".join(lineas)
+                    respuesta = f"HISTOOK{historial}"
 
         except Exception as e:
-            mensaje = f"HISTONKError: {str(e)}"
+            conn.rollback()
+            print("Error:", e)
+            respuesta = f"HISTONKError: {str(e)}"
 
-        largo = f"{len(mensaje):05}"
-        print("Enviando respuesta:", mensaje)
-        sock.sendall(f"{largo}{mensaje}".encode())
+        largo = f"{len(respuesta):05}"
+        print("Enviando respuesta:", respuesta)
+        sock.sendall(f"{largo}{respuesta}".encode())
 
 finally:
     cursor.close()
